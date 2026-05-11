@@ -1,54 +1,66 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Google AI Studio Export</title>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kakapone AI - Thinking Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-[#131314] text-[#e3e3e3] h-screen flex flex-col font-sans">
-    <div class="flex-1 overflow-y-auto p-4" id="chat-history"></div>
-    <div class="p-4 bg-[#1e1f20] border-t border-[#444746]">
+</head>
+<body class="bg-[#131314] text-[#e3e3e3] h-screen flex flex-col font-sans">
+    <header class="h-12 border-b border-[#444746] flex items-center px-4 bg-[#1e1f20]">
+        <div class="text-sm font-medium text-[#c4c7c5]">Kakapone AI (Thinking: HIGH)</div>
+    </header>
+
+    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 max-w-3xl mx-auto w-full"></div>
+
+    <div class="p-4 bg-[#131314] border-t border-[#444746]">
       <div class="max-w-4xl mx-auto flex gap-2">
-        <input type="text" id="user-input" class="flex-1 bg-[#131314] border border-[#444746] rounded-xl px-4 py-3 outline-none focus:border-[#a8c7fa]" placeholder="Type a message...">
-        <button id="send-button" class="text-[#a8c7fa] p-2 hover:bg-[#333537] rounded-full">
+        <input type="text" id="user-input" class="flex-1 bg-[#1e1f20] border border-[#444746] rounded-xl px-4 py-3 outline-none focus:border-[#a8c7fa]" placeholder="カカポネに問いかける...">
+        <button id="send-btn" class="text-[#a8c7fa] p-2 hover:bg-[#333537] rounded-full">
           <svg viewBox="0 0 24 24" class="w-6 h-6 fill-current"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
         </button>
       </div>
     </div>
 
     <script type="module">
-      import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        // ブラウザで動くライブラリを読み込み
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-      const genAI = new GoogleGenerativeAI("AIzaSyCsq4putpU9vTZdQIwayRS4nDK28j1wIzo");
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        systemInstruction: "あなたはカカポネです。論理的で構造的な回答を行い、文末にたまにオウムの絵文字を添えてください。Google検索を使用して最新情勢を分析してください。",
-        tools: [{ googleSearch: {} }]
-      });
+        // あなたのAPIキーを直接セット
+        const genAI = new GoogleGenerativeAI("AIzaSyCsq4putpU9vTZdQIwayRS4nDK28j1wIzo");
+        
+        // AI Studioの設定を反映
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash-thinking-exp-01-21", // 思考モデルの最新版
+            systemInstruction: "あなたはカカポネです。論理的で構造的な回答を行い、文末にオウムの絵文字を添えてください。Google検索を使用して最新情勢を分析してください。",
+            tools: [{ googleSearch: {} }]
+        });
 
-      let chat = model.startChat({ history: [] });
+        let chat = model.startChat();
 
-      async function sendMessage() {
-        const input = document.getElementById('user-input');
-        const history = document.getElementById('chat-history');
-        const text = input.value.trim();
-        if (!text) return;
+        window.sendMessage = async () => {
+            const input = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const text = input.value.trim();
+            if (!text) return;
 
-        history.innerHTML += `<div class="flex justify-end mb-4"><div class="bg-[#333537] px-4 py-2 rounded-2xl max-w-[80%]">${text}</div></div>`;
-        input.value = '';
+            chatBox.innerHTML += `<div class="flex justify-end mb-4"><div class="bg-[#333537] px-4 py-2 rounded-2xl text-sm max-w-[80%]">${text}</div></div>`;
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
 
-        try {
-          const result = await chat.sendMessage(text);
-          const response = await result.response;
-          history.innerHTML += `<div class="flex justify-start mb-4"><div class="max-w-[90%] whitespace-pre-wrap">${response.text()}</div></div>`;
-        } catch (e) {
-          history.innerHTML += `<div class="text-red-400 text-center text-xs">Error: Check API Key or permissions.</div>`;
-        }
-        history.scrollTop = history.scrollHeight;
-      }
+            try {
+                const result = await chat.sendMessage(text);
+                const response = await result.response;
+                chatBox.innerHTML += `<div class="flex justify-start mb-4"><div class="text-sm leading-relaxed whitespace-pre-wrap">${response.text()}</div></div>`;
+            } catch (e) {
+                console.error(e);
+                chatBox.innerHTML += `<div class="text-red-400 text-xs text-center">エラー: APIキーまたは接続を確認してください。</div>`;
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+        };
 
-      document.getElementById('send-button').onclick = sendMessage;
-      document.getElementById('user-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+        document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('user-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
     </script>
-  </body>
+</body>
 </html>
