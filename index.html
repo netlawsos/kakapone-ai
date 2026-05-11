@@ -1,68 +1,627 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kakapone AI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>カカポネ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:        #131314;
+    --s1:        #1a1b1d;
+    --s2:        #222426;
+    --s3:        #2d2f32;
+    --border:    rgba(255,255,255,0.07);
+    --accent:    #7eb8f7;
+    --violet:    #a78bfa;
+    --green:     #34c98a;
+    --red:       #f87171;
+    --text:      #e4e6ea;
+    --muted:     #6b7280;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Noto Sans JP', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── Layout ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* ── Header ── */
+  #header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 2;
+  }
+
+  .mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--violet) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: normal;
+    color: #fff;
+    letter-spacing: -0.03em;
+    flex-shrink: 0;
+  }
+
+  .title-block { flex: 1; min-width: 0; }
+
+  .app-name {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-family: var(--mono);
+  }
+
+  .model-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-top: 1px;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 20px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* ── Chat area ── */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 16px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  #chat::-webkit-scrollbar { width: 3px; }
+  #chat::-webkit-scrollbar-track { background: transparent; }
+  #chat::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 3px; }
+
+  /* Welcome */
+  .welcome {
+    text-align: center;
+    padding: 40px 0 20px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .welcome .big-mark {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 22px;
+    color: #fff;
+    margin: 0 auto 14px;
+    box-shadow: 0 8px 32px rgba(126,184,247,0.15);
+  }
+
+  .welcome h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .welcome p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Messages */
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 92%;
+    animation: fadeUp 0.2s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user  { align-self: flex-end; align-items: flex-end; }
+  .msg.model { align-self: flex-start; align-items: flex-start; }
+
+  .msg-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    letter-spacing: 0.06em;
+  }
+
+  .bubble {
+    padding: 11px 15px;
+    border-radius: 16px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #1b3a5e 0%, #1e2d4a 100%);
+    border: 1px solid rgba(126,184,247,0.15);
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg.model .bubble {
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Thinking toggle */
+  .think-toggle {
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--violet);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+    user-select: none;
+  }
+
+  .think-toggle:hover { opacity: 1; }
+
+  .think-arrow { transition: transform 0.2s; display: inline-block; }
+  .think-toggle.open .think-arrow { transform: rotate(90deg); }
+
+  .think-body {
+    display: none;
+    margin-top: 5px;
+    padding: 10px 12px;
+    background: rgba(167,139,250,0.06);
+    border: 1px solid rgba(167,139,250,0.15);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    max-height: 180px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .think-body.open { display: block; }
+
+  /* Sources */
+  .sources {
+    margin-top: 7px;
+    padding: 9px 12px;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .sources-label {
+    font-family: var(--mono);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+
+  .sources a {
+    display: block;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 3px;
+    font-size: 11px;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+  }
+
+  .sources a:hover { opacity: 1; }
+
+  /* Typing */
+  .typing-wrap {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    animation: fadeUp 0.2s ease both;
+  }
+
+  .typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 14px 16px;
+    background: var(--s1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+    30%            { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Error */
+  .err-bubble {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    font-family: var(--mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ── Input area ── */
+  #input-area {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  #input {
+    flex: 1;
+    min-height: 42px;
+    max-height: 120px;
+    resize: none;
+    background: var(--s2);
+    border: 1px solid var(--border);
+    border-radius: 21px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.55;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+    overflow-y: auto;
+  }
+
+  #input:focus { border-color: rgba(126,184,247,0.4); }
+
+  #input::placeholder { color: var(--muted); }
+
+  #send {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--violet));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.35;
+    transition: opacity 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #send.ready { opacity: 1; }
+  #send:active { transform: scale(0.92); }
+  #send svg { width: 18px; height: 18px; fill: #fff; }
+</style>
 </head>
-<body class="bg-[#131314] text-[#e3e3e3] h-screen flex flex-col font-sans text-sm">
-    <header class="h-12 border-b border-[#444746] flex items-center px-4 bg-[#1e1f20]">
-        <div class="font-medium">Kakapone AI</div>
-    </header>
+<body>
+<div id="app">
 
-    <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4 max-w-3xl mx-auto w-full"></div>
-
-    <div class="p-4 bg-[#131314] border-t border-[#444746]">
-        <div class="max-w-3xl mx-auto flex gap-2 items-center bg-[#1e1f20] border border-[#444746] rounded-2xl p-1 focus-within:border-[#a8c7fa]">
-            <input id="user-input" type="text" class="flex-1 bg-transparent border-none outline-none px-4 py-2" placeholder="カカポネに問いかける...">
-            <button onclick="sendMessage()" id="send-btn" class="p-2 text-[#a8c7fa]">
-                <svg viewBox="0 0 24 24" class="w-6 h-6 fill-current"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-            </button>
-        </div>
+  <div id="header">
+    <div class="mark">✦</div>
+    <div class="title-block">
+      <div class="app-name">カカポネ</div>
+      <div class="model-tag">gemini-3-flash-preview · search · thinking:high</div>
     </div>
+    <div class="pill"><div class="dot"></div>LIVE</div>
+  </div>
 
-    <script type="module">
-        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+  <div id="chat">
+    <div class="welcome">
+      <div class="big-mark">✦</div>
+      <h2>カカポネへようこそ</h2>
+      <p>Gemini 3 Flash · Google検索 · 高度な思考<br>何でも聞いてください。</p>
+    </div>
+  </div>
 
-        // あなたの有効なAPIキー
-        const API_KEY = "AIzaSyCsq4putpU9vTZdQIwayRS4nDK28j1wIzo"; 
-        const genAI = new GoogleGenerativeAI(API_KEY);
+  <div id="input-area">
+    <textarea id="input" rows="1" placeholder="メッセージを入力…"></textarea>
+    <button id="send" aria-label="送信">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
 
-        // AI Studioの「Thinking」と「Search」をブラウザ形式で指定
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.0-flash-thinking-exp-01-21",
-            tools: [{ googleSearch: {} }]
-        });
+</div>
 
-        const chat = model.startChat();
+<script>
+// ─────────────────────────────────────────────
+//  設定（APIキーはVercel環境変数で管理）
+// ─────────────────────────────────────────────
+const ENDPOINT = "/api/chat";
 
-        window.sendMessage = async () => {
-            const input = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const btn = document.getElementById('send-btn');
-            const text = input.value.trim();
-            if (!text || btn.disabled) return;
+// ─────────────────────────────────────────────
+//  DOM
+// ─────────────────────────────────────────────
+const chatEl  = document.getElementById("chat");
+const inputEl = document.getElementById("input");
+const sendBtn = document.getElementById("send");
 
-            // ユーザー側の表示
-            chatBox.innerHTML += `<div class="flex justify-end"><div class="bg-[#333537] px-4 py-2 rounded-2xl max-w-[85%]">${text}</div></div>`;
-            input.value = '';
-            btn.disabled = true;
-            chatBox.scrollTop = chatBox.scrollHeight;
+let history   = [];   // 会話履歴（multi-turn）
+let loading   = false;
 
-            try {
-                const result = await chat.sendMessage(text);
-                const response = await result.response;
-                // AI側の表示
-                chatBox.innerHTML += `<div class="flex justify-start"><div class="leading-relaxed whitespace-pre-wrap w-full">${response.text()}</div></div>`;
-            } catch (e) {
-                console.error(e);
-                chatBox.innerHTML += `<div class="text-red-400 text-center text-xs">接続エラー。APIキーの権限を確認してください。</div>`;
-            }
-            btn.disabled = false;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        };
-        document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    </script>
+// ─────────────────────────────────────────────
+//  入力欄
+// ─────────────────────────────────────────────
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+  sendBtn.classList.toggle("ready", !!inputEl.value.trim());
+});
+
+inputEl.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (!loading && inputEl.value.trim()) go();
+  }
+});
+
+sendBtn.addEventListener("click", () => {
+  if (!loading && inputEl.value.trim()) go();
+});
+
+// ─────────────────────────────────────────────
+//  送信メイン
+// ─────────────────────────────────────────────
+async function go() {
+  const text = inputEl.value.trim();
+  if (!text || loading) return;
+
+  loading = true;
+  inputEl.value = "";
+  inputEl.style.height = "auto";
+  sendBtn.classList.remove("ready");
+
+  // ユーザーメッセージ表示
+  appendUserMsg(text);
+  history.push({ role: "user", parts: [{ text }] });
+
+  // ローディング表示
+  const tyEl = appendTyping();
+
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: history,
+        tools: [{ googleSearch: {} }],
+        generationConfig: {
+          thinkingConfig: { thinkingLevel: "high" }
+        }
+      })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(
+        errBody?.error?.message
+        || `HTTP ${res.status} ${res.statusText}`
+      );
+    }
+
+    const data = await res.json();
+    const cand = data?.candidates?.[0];
+
+    if (!cand?.content?.parts) throw new Error("レスポンスが空でした（candidatesなし）");
+
+    // テキスト / 思考 を分離
+    let replyText  = "";
+    let thinkText  = "";
+
+    cand.content.parts.forEach(p => {
+      if (p.thought) thinkText += (p.text || "");
+      else           replyText += (p.text || "");
+    });
+
+    // 検索ソース
+    const chunks = cand?.groundingMetadata?.groundingChunks || [];
+    const sources = chunks
+      .map(c => c.web)
+      .filter(w => w?.uri);
+
+    tyEl.remove();
+    appendAIMsg(replyText.trim(), thinkText.trim() || null, sources);
+
+    // 履歴に追加（思考部分は除いてシンプルに）
+    history.push({ role: "model", parts: [{ text: replyText.trim() }] });
+
+  } catch (err) {
+    tyEl.remove();
+    appendError(err.message);
+    // 失敗したユーザー発話を履歴から除去
+    history.pop();
+  }
+
+  loading = false;
+}
+
+// ─────────────────────────────────────────────
+//  DOM ヘルパー
+// ─────────────────────────────────────────────
+function scrollBot() {
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function appendUserMsg(text) {
+  const wrap = el("div", "msg user");
+  wrap.appendChild(label("あなた"));
+  const b = el("div", "bubble");
+  b.textContent = text;
+  wrap.appendChild(b);
+  chatEl.appendChild(wrap);
+  scrollBot();
+}
+
+function appendAIMsg(text, thinking, sources) {
+  const wrap = el("div", "msg model");
+  wrap.appendChild(label("カカポネ"));
+
+  const b = el("div", "bubble");
+  b.textContent = text;
+  wrap.appendChild(b);
+
+  // 思考プロセス（折り畳み）
+  if (thinking) {
+    const tog = el("div", "think-toggle");
+    tog.innerHTML = '<span class="think-arrow">▸</span> 思考プロセス';
+    const body = el("div", "think-body");
+    body.textContent = thinking;
+    tog.addEventListener("click", () => {
+      body.classList.toggle("open");
+      tog.classList.toggle("open");
+    });
+    wrap.appendChild(tog);
+    wrap.appendChild(body);
+  }
+
+  // 検索ソース
+  if (sources.length > 0) {
+    const src = el("div", "sources");
+    const lbl = el("div", "sources-label");
+    lbl.textContent = "🔍 参照元";
+    src.appendChild(lbl);
+    sources.slice(0, 5).forEach(w => {
+      const a = document.createElement("a");
+      a.href = w.uri;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = w.title || w.uri;
+      src.appendChild(a);
+    });
+    wrap.appendChild(src);
+  }
+
+  chatEl.appendChild(wrap);
+  scrollBot();
+}
+
+function appendError(msg) {
+  const wrap = el("div", "msg model");
+  wrap.appendChild(label("エラー"));
+  const b = el("div", "err-bubble");
+  b.textContent = `⚠ ${msg}\n\n── 対処方法 ──\n1. APIキーをGCP Consoleで確認（ドメイン制限がないか）\n2. Vercelのデプロイログでネットワークエラーを確認\n3. モデル名・課金状況を確認`;
+  wrap.appendChild(b);
+  chatEl.appendChild(wrap);
+  scrollBot();
+}
+
+function appendTyping() {
+  const wrap = el("div", "typing-wrap");
+  const lb = label("カカポネ");
+  const dots = el("div", "typing-dots");
+  dots.innerHTML = "<span></span><span></span><span></span>";
+  wrap.appendChild(lb);
+  wrap.appendChild(dots);
+  chatEl.appendChild(wrap);
+  scrollBot();
+  return wrap;
+}
+
+function label(txt) {
+  const d = el("div", "msg-label");
+  d.textContent = txt;
+  return d;
+}
+
+function el(tag, cls) {
+  const d = document.createElement(tag);
+  if (cls) d.className = cls;
+  return d;
+}
+</script>
 </body>
 </html>
